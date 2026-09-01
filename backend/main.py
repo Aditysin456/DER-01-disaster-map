@@ -1,5 +1,6 @@
 import os
 import shutil
+import uuid
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,6 +21,8 @@ app.add_middleware(
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+
 @app.on_event("startup")
 def startup():
     init_db()
@@ -27,6 +30,10 @@ def startup():
 @app.get("/")
 def root():
     return {"status": "DER-01 backend is alive"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "service": "DER-01 backend"}
 
 @app.post("/api/reports")
 async def create_report(
@@ -42,18 +49,23 @@ async def create_report(
     if not image.content_type or not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Uploaded file must be an image")
 
-    # Save the uploaded image
+    # Check file size before saving
+    image.file.seek(0, 2)
+    file_size = image.file.tell()
+    image.file.seek(0)
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="Image file too large (max 10MB)")
+    if file_size == 0:
+        raise HTTPException(status_code=400, detail="Uploaded image is empty")
+
+    # Save with a unique filename to prevent overwrites
     try:
-        image_path = os.path.join(UPLOAD_DIR, image.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{image.filename}"
+        image_path = os.path.join(UPLOAD_DIR, unique_filename)
         with open(image_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to save uploaded image")
-
-    # Check file isn't empty
-    if os.path.getsize(image_path) == 0:
-        os.remove(image_path)
-        raise HTTPException(status_code=400, detail="Uploaded image is empty")
 
     # Read bytes for classifier
     try:
