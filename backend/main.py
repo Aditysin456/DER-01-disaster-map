@@ -8,8 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 
 from database import init_db, insert_report, get_all_reports
-from classifier.classifier import classify_image, classify_thermal
+from classifier.real_classifier import classify_image
+from classifier.classify_thermal import classify_thermal
 from severity import compute_severity
+from severity import estimate_severity
 
 app = FastAPI()
 
@@ -99,6 +101,11 @@ async def create_report(
     if thermal_image is not None:
         _validate_image_file(thermal_image, "thermal_image")
 
+    # Modality separation (by design): the RGB hazard classifier
+    # (classify_image) only ever receives image_path (normal/RGB images).
+    # It is NOT trained on thermal imagery and must never receive
+    # thermal_image_path. Thermal images are routed exclusively to
+    # classify_thermal for human detection. Do not cross-wire these.
     image_path = _save_file(image) if image is not None else None
     thermal_image_path = _save_file(thermal_image) if thermal_image is not None else None
 
@@ -110,14 +117,14 @@ async def create_report(
             raise HTTPException(status_code=500, detail="Failed to read saved image")
 
         try:
-            classification = classify_image(image_bytes)
+            classification = classify_image(image_path)
             hazard_type = classification["hazard_type"]
             confidence = classification["confidence"]
         except Exception:
             raise HTTPException(status_code=502, detail="Classifier failed to process the image")
 
         try:
-            severity = compute_severity(hazard_type, confidence)
+            severity = estimate_severity(image_path, hazard_type, confidence)
         except Exception:
             severity = "Low"
     else:
@@ -128,6 +135,7 @@ async def create_report(
     humans_detected = None
     human_count_estimate = None
     thermal_confidence = None
+    count_confident = None
     if thermal_image_path is not None:
         try:
             with open(thermal_image_path, "rb") as f:
@@ -136,10 +144,12 @@ async def create_report(
             humans_detected = thermal_result["humans_detected"]
             human_count_estimate = thermal_result["human_count_estimate"]
             thermal_confidence = thermal_result["confidence"]
+            count_confident = thermal_result["count_confident"]
         except Exception:
             humans_detected = None
             human_count_estimate = None
             thermal_confidence = None
+            count_confident = None
 
     try:
         report = insert_report(
@@ -151,6 +161,8 @@ async def create_report(
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to store report in database")
 
+    if isinstance(report, dict):
+        report["count_confident"] = count_confident
     return report
 
 

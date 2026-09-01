@@ -3,3 +3,5 @@ backend/uploads/
 backend/reports.db
 __pycache__/
 *.pyc
+backend/yolov8n.pt
+backend/ref_object.py

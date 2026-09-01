@@ -2,55 +2,434 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Disaster Map Dashboard</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen Disaster Reporting Dashboard</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <div id="appHeader">Citizen Disaster Reporting Dashboard</div>
+
+  <div id="appHeader">
+    <span id="appTitle">Citizen Disaster Reporting Dashboard</span>
+
+    <div class="headerDivider"></div>
+
+    <span id="liveBadge">
+      <span class="livePulse"></span>
+      LIVE
+    </span>
+  </div>
 
   <div id="map"></div>
 
-  <form id="reportForm">
-    <h3>📍 Report a Disaster</h3>
-    <div id="queueBadge" style="display:none; background:#fff3cd; color:#856404; font-size:12px; padding:6px 8px; border-radius:4px; margin-bottom:8px;"></div>
+  <div id="pointerCursor">
+    <span class="pointerHorizontal"></span>
+    <span class="pointerVertical"></span>
+    <span class="pointerCenter"></span>
+  </div>
 
-    <div id="sourceToggle" style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-      <span id="labelMobile" style="font-weight:bold;">Mobile</span>
-      <label class="switch">
-        <input type="checkbox" id="sourceSwitch">
-        <span class="slider"></span>
-      </label>
-      <span id="labelDrone" style="color:#888;">Drone</span>
+  <div id="accessOverlay">
+    <div id="accessModal">
+
+      <div id="accessModalHeader">
+        <h2>Access request</h2>
+
+        <button
+          id="accessCloseBtn"
+          type="button"
+          aria-label="Close"
+        >
+          &times;
+        </button>
+      </div>
+
+      <p id="accessModalSubtitle">
+        The app requests access to the following permissions:
+      </p>
+
+      <div class="permissionRow">
+        <span>Camera</span>
+
+        <label class="switch">
+          <input
+            type="checkbox"
+            id="permCamera"
+            checked
+          >
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="permissionRow">
+        <span>Geographic location</span>
+
+        <label class="switch">
+          <input
+            type="checkbox"
+            id="permLocation"
+            checked
+          >
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <button
+        id="accessApplyBtn"
+        type="button"
+      >
+        Apply
+      </button>
+
+    </div>
+  </div>
+
+  <form id="reportForm">
+
+    <div class="reportFormHeader">
+
+      <span class="reportFormIcon">
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"></path>
+          <circle cx="12" cy="10" r="2.5"></circle>
+        </svg>
+      </span>
+
+      <div>
+        <h3>Report a Disaster</h3>
+
+        <span class="formSubtitle">
+          Submit a verified field report
+        </span>
+      </div>
+
     </div>
 
-    <input type="number" id="lat" step="any" placeholder="Latitude" required>
-    <input type="number" id="lng" step="any" placeholder="Longitude" required>
-    <div id="gpsSourceNote" style="font-size:11px; color:#888; margin:-4px 0 8px 2px;">GPS: enter manually or upload a photo</div>
+    <div
+      id="queueBadge"
+      style="display:none;"
+    ></div>
 
-    <label for="reportImage" class="fileUploadLabel">
-      <span class="uploadIcon">📷</span>
-      <span id="fileNameDisplay">Upload Photo</span>
+    <div
+      id="sourceToggle"
+      role="tablist"
+    >
+
+      <button
+        type="button"
+        id="tabMobile"
+        class="sourceTab sourceTabActive"
+        role="tab"
+        aria-selected="true"
+      >
+        Reporting via Mobile
+      </button>
+
+      <button
+        type="button"
+        id="tabDrone"
+        class="sourceTab"
+        role="tab"
+        aria-selected="false"
+      >
+        Reporting via Drone
+      </button>
+
+      <input
+        type="checkbox"
+        id="sourceSwitch"
+        style="display:none;"
+      >
+
+    </div>
+
+    <div class="quickCaptureHeader">
+      QUICK CAPTURE
+    </div>
+
+    <div class="quickCaptureRow">
+
+      <button
+        type="button"
+        id="openCameraBtn"
+        class="captureBtn"
+      >
+        <span class="captureIcon">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+        </span>
+
+        <span>Open Camera</span>
+      </button>
+
+      <button
+        type="button"
+        id="uploadGalleryBtn"
+        class="captureBtn"
+      >
+        <span class="captureIcon">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </span>
+
+        <span>Upload from Gallery</span>
+      </button>
+
+    </div>
+
+    <input
+      type="file"
+      id="reportImage"
+      accept="image/*"
+      style="display:none;"
+    >
+
+    <div
+      id="fileNameDisplay"
+      class="fileNameDisplay"
+    >
+      Upload Photo
+    </div>
+
+    <label
+      for="thermalImage"
+      class="captureBtn thermalCapture"
+      id="thermalImageLabel"
+      style="display:none;"
+    >
+      <span class="captureIcon">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M14 4v10.5a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"></path>
+        </svg>
+      </span>
+
+      <span id="thermalFileNameDisplay">
+        Upload Thermal Image
+      </span>
     </label>
-    <input type="file" id="reportImage" accept="image/*" style="display:none;">
 
-    <label for="thermalImage" class="fileUploadLabel" id="thermalImageLabel" style="display:none;">
-      <span class="uploadIcon">🌡️</span>
-      <span id="thermalFileNameDisplay">Upload Thermal Image</span>
-    </label>
-    <input type="file" id="thermalImage" accept="image/*" style="display:none;">
+    <input
+      type="file"
+      id="thermalImage"
+      accept="image/*"
+      style="display:none;"
+    >
 
-    <button type="submit">Submit Report</button>
+    <input
+      type="hidden"
+      id="lat"
+    >
+
+    <input
+      type="hidden"
+      id="lng"
+    >
+
+    <div id="gpsStatusCard">
+
+      <div class="gpsStatusIcon">
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="3"></circle>
+          <line x1="12" y1="2" x2="12" y2="5"></line>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+          <line x1="2" y1="12" x2="5" y2="12"></line>
+          <line x1="19" y1="12" x2="22" y2="12"></line>
+        </svg>
+      </div>
+
+      <div class="gpsStatusText">
+        <strong>Report Location</strong>
+
+        <span id="gpsSourceNote">
+          Move pointer over map
+        </span>
+      </div>
+
+      <button
+        type="button"
+        id="refreshGpsBtn"
+        aria-label="Use device location"
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="9"></circle>
+          <polyline points="12 7 12 12 15 14"></polyline>
+        </svg>
+      </button>
+
+    </div>
+
+    <button
+      type="submit"
+      class="submitReportBtn"
+    >
+      Submit Report
+    </button>
+
   </form>
 
-  <div id="legend">
-    <div><span class="dot" style="background:red"></span> High</div>
-    <div><span class="dot" style="background:orange"></span> Medium</div>
-    <div><span class="dot" style="background:green"></span> Low</div>
+  <div id="bottomLeftCards">
+
+    <div id="legend">
+
+      <div class="legendTitle">
+        SEVERITY
+      </div>
+
+      <div>
+        <span class="dot highDot"></span>
+        High
+      </div>
+
+      <div>
+        <span class="dot mediumDot"></span>
+        Medium
+      </div>
+
+      <div>
+        <span class="dot lowDot"></span>
+        Low
+      </div>
+
+    </div>
+
+    <div id="currentLocationCard">
+
+      <div class="currentLocationHeader">
+
+        <span>
+          CURRENT LOCATION
+        </span>
+
+        <div class="currentLocationActions">
+
+          <button
+            type="button"
+            id="locateBtn"
+            aria-label="Locate me"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="3"></circle>
+              <line x1="12" y1="2" x2="12" y2="5"></line>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+              <line x1="2" y1="12" x2="5" y2="12"></line>
+              <line x1="19" y1="12" x2="22" y2="12"></line>
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            id="copyLocationBtn"
+            aria-label="Copy coordinates"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+
+        </div>
+
+      </div>
+
+      <div class="currentLocationRow">
+        Longitude
+        <span id="currentLon">—</span>
+      </div>
+
+      <div class="currentLocationRow">
+        Latitude
+        <span id="currentLat">—</span>
+      </div>
+
+    </div>
+
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js"></script>
   <script src="script.js"></script>
+
 </body>
 </html>
