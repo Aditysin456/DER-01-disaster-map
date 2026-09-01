@@ -111,6 +111,11 @@ if (dashboardHeader) {
       "aria-expanded",
       String(isOpen)
     );
+
+    document.body.classList.toggle(
+      "map-theme-open",
+      isOpen
+    );
   });
 
   document.querySelectorAll(".mapThemeOption")
@@ -144,6 +149,10 @@ if (dashboardHeader) {
 
         themeMenu.classList.remove("is-open");
 
+        document.body.classList.remove(
+          "map-theme-open"
+        );
+
         toggle.setAttribute(
           "aria-expanded",
           "false"
@@ -154,6 +163,10 @@ if (dashboardHeader) {
   document.addEventListener("click", event => {
     if (!themeMenu.contains(event.target)) {
       themeMenu.classList.remove("is-open");
+
+      document.body.classList.remove(
+        "map-theme-open"
+      );
 
       toggle.setAttribute(
         "aria-expanded",

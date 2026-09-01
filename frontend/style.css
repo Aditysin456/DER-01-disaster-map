@@ -1105,3 +1105,15 @@ button {
     width: min(330px, calc(100vw - 16px));
   }
 }
+
+/* Prevent the mobile map-theme panel from overlapping the report form */
+@media (max-width: 650px) {
+  body.map-theme-open #reportForm {
+    top: 365px;
+    max-height: calc(100dvh - 380px);
+  }
+
+  #mapThemePanel {
+    z-index: 1300;
+  }
+}
