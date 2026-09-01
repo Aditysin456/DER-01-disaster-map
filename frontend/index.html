@@ -13,13 +13,33 @@
 
   <form id="reportForm">
     <h3>📍 Report a Disaster</h3>
+    <div id="queueBadge" style="display:none; background:#fff3cd; color:#856404; font-size:12px; padding:6px 8px; border-radius:4px; margin-bottom:8px;"></div>
+
+    <div id="sourceToggle" style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+      <span id="labelMobile" style="font-weight:bold;">Mobile</span>
+      <label class="switch">
+        <input type="checkbox" id="sourceSwitch">
+        <span class="slider"></span>
+      </label>
+      <span id="labelDrone" style="color:#888;">Drone</span>
+    </div>
+
     <input type="number" id="lat" step="any" placeholder="Latitude" required>
     <input type="number" id="lng" step="any" placeholder="Longitude" required>
+    <div id="gpsSourceNote" style="font-size:11px; color:#888; margin:-4px 0 8px 2px;">GPS: enter manually or upload a photo</div>
+
     <label for="reportImage" class="fileUploadLabel">
       <span class="uploadIcon">📷</span>
       <span id="fileNameDisplay">Upload Photo</span>
     </label>
-    <input type="file" id="reportImage" accept="image/*" required style="display:none;">
+    <input type="file" id="reportImage" accept="image/*" style="display:none;">
+
+    <label for="thermalImage" class="fileUploadLabel" id="thermalImageLabel" style="display:none;">
+      <span class="uploadIcon">🌡️</span>
+      <span id="thermalFileNameDisplay">Upload Thermal Image</span>
+    </label>
+    <input type="file" id="thermalImage" accept="image/*" style="display:none;">
+
     <button type="submit">Submit Report</button>
   </form>
 
@@ -30,6 +50,7 @@
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
