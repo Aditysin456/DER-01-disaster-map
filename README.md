@@ -24,7 +24,7 @@ Response: array of the above shape
 ## Classifier Contract
 Input: raw image bytes
 Output: `{ "hazard_type": string, "confidence": float }`
-hazard_type is one of: "flood", "fire", "structural_damage"
+hazard_type is one of: "flood", "fire", "structural_collapse", "landslide"
 
 ## Severity Rule
 - High: confidence >= 0.75

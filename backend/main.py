@@ -5,7 +5,9 @@ from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import init_db, insert_report, get_all_reports
-from classifier_stub import classify_image
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from classifier.classifier import classify_image
 from severity import compute_severity
 
 app = FastAPI()
