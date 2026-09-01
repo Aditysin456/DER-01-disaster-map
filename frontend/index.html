@@ -1,1 +1,23 @@
-<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <title>Disaster Map Dashboard</title> <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" /> <link rel="stylesheet" href="style.css" /> </head> <body> <div id="map"></div> <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script> <script src="script.js"></script> </body> </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Disaster Map Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="map"></div>
+
+  <form id="reportForm">
+    <h3>Report a Disaster</h3>
+    <input type="file" id="reportImage" accept="image/*" required>
+    <input type="number" id="lat" step="any" placeholder="Latitude" required>
+    <input type="number" id="lng" step="any" placeholder="Longitude" required>
+    <button type="submit">Submit Report</button>
+  </form>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
