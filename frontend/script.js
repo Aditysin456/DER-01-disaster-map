@@ -240,6 +240,11 @@ document.getElementById('sourceSwitch').addEventListener('change', function() {
 
 document.getElementById('reportForm').addEventListener('submit', function(e) {
   e.preventDefault();
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.classList.add('loading');
+  const originalBtnText = submitBtn.textContent;
+  submitBtn.textContent = 'Submitting';
   const image = document.getElementById('reportImage').files[0];
   const lat = parseFloat(document.getElementById('lat').value);
   const lng = parseFloat(document.getElementById('lng').value);
@@ -279,6 +284,11 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
       console.log('Success:', data);
       alert('Report submitted!');
       location.reload();
+    })
+    .finally(() => {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('loading');
+      submitBtn.textContent = originalBtnText;
     })
     .catch(async (err) => {
       const isNetworkError = err instanceof TypeError;
