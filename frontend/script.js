@@ -1,11 +1,6 @@
-const accessOverlay =
-  document.getElementById("accessOverlay");
-
-const accessCloseBtn =
-  document.getElementById("accessCloseBtn");
-
-const accessApplyBtn =
-  document.getElementById("accessApplyBtn");
+const accessOverlay = document.getElementById("accessOverlay");
+const accessCloseBtn = document.getElementById("accessCloseBtn");
+const accessApplyBtn = document.getElementById("accessApplyBtn");
 
 const map = L.map("map").setView(
   [13.0827, 80.2707],
@@ -15,45 +10,25 @@ const map = L.map("map").setView(
 L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   {
-    attribution:
-      "© OpenStreetMap contributors"
+    attribution: "© OpenStreetMap contributors"
   }
 ).addTo(map);
 
-const pointerCursor =
-  document.getElementById("pointerCursor");
+const latInput = document.getElementById("lat");
+const lngInput = document.getElementById("lng");
+const gpsSourceNote = document.getElementById("gpsSourceNote");
 
-const latInput =
-  document.getElementById("lat");
+const currentLat = document.getElementById("currentLat");
+const currentLon = document.getElementById("currentLon");
 
-const lngInput =
-  document.getElementById("lng");
+const reportImage = document.getElementById("reportImage");
+const fileNameDisplay = document.getElementById("fileNameDisplay");
 
-const gpsSourceNote =
-  document.getElementById("gpsSourceNote");
-
-const currentLat =
-  document.getElementById("currentLat");
-
-const currentLon =
-  document.getElementById("currentLon");
-
-const reportImage =
-  document.getElementById("reportImage");
-
-const fileNameDisplay =
-  document.getElementById("fileNameDisplay");
-
-const thermalImage =
-  document.getElementById("thermalImage");
-
+const thermalImage = document.getElementById("thermalImage");
 const thermalImageLabel =
   document.getElementById("thermalImageLabel");
-
 const thermalFileNameDisplay =
-  document.getElementById(
-    "thermalFileNameDisplay"
-  );
+  document.getElementById("thermalFileNameDisplay");
 
 const sourceSwitch =
   document.getElementById("sourceSwitch");
@@ -67,9 +42,6 @@ const tabDrone =
 const reportForm =
   document.getElementById("reportForm");
 
-let selectedLat = null;
-let selectedLon = null;
-
 const renderedReportIds =
   new Set();
 
@@ -79,15 +51,32 @@ const DB_NAME =
 const STORE_NAME =
   "pending_reports";
 
-function updateCurrentLocation(
-  lat,
-  lon
-) {
+let latestLat = null;
+let latestLon = null;
+
+function setGPSStatus(message) {
+  if (gpsSourceNote) {
+    gpsSourceNote.textContent = message;
+  }
+}
+
+function updateCurrentLocation(lat, lon) {
   if (
     !Number.isFinite(lat) ||
     !Number.isFinite(lon)
   ) {
     return;
+  }
+
+  latestLat = lat;
+  latestLon = lon;
+
+  if (latInput) {
+    latInput.value = lat.toFixed(6);
+  }
+
+  if (lngInput) {
+    lngInput.value = lon.toFixed(6);
   }
 
   if (currentLat) {
@@ -101,166 +90,176 @@ function updateCurrentLocation(
   }
 }
 
-function setGPSStatus(
-  message
+function requestDeviceLocation(
+  centerMap = false
 ) {
-  if (gpsSourceNote) {
-    gpsSourceNote.textContent =
-      message;
+  if (!navigator.geolocation) {
+    setGPSStatus("GPS unavailable");
+    return Promise.reject(
+      new Error(
+        "Geolocation is not supported by this browser."
+      )
+    );
   }
-}
-
-function setSelectedLocation(
-  lat,
-  lon
-) {
-  if (
-    !Number.isFinite(lat) ||
-    !Number.isFinite(lon)
-  ) {
-    return;
-  }
-
-  selectedLat = lat;
-  selectedLon = lon;
-
-  if (latInput) {
-    latInput.value =
-      lat.toFixed(6);
-  }
-
-  if (lngInput) {
-    lngInput.value =
-      lon.toFixed(6);
-  }
-
-  updateCurrentLocation(
-    lat,
-    lon
-  );
 
   setGPSStatus(
-    `Pointer: ${lat.toFixed(6)}, ${lon.toFixed(6)}`
+    "Getting device location..."
+  );
+
+  return new Promise(
+    (resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const lat =
+            position.coords.latitude;
+
+          const lon =
+            position.coords.longitude;
+
+          updateCurrentLocation(
+            lat,
+            lon
+          );
+
+          setGPSStatus(
+            "GPS: from device"
+          );
+
+          if (centerMap) {
+            map.setView(
+              [lat, lon],
+              15
+            );
+          }
+
+          resolve({
+            lat,
+            lon
+          });
+        },
+        error => {
+          setGPSStatus(
+            "Device GPS unavailable"
+          );
+
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
   );
 }
 
-function handlePointerOnMap(
-  event
-) {
-  const rect =
-    map.getContainer()
-      .getBoundingClientRect();
+function getPhotoGPS(file) {
+  return new Promise(resolve => {
+    if (
+      !file ||
+      typeof EXIF === "undefined"
+    ) {
+      resolve(null);
+      return;
+    }
 
-  const clientX =
-    event.clientX;
+    try {
+      EXIF.getData(
+        file,
+        function () {
+          const lat =
+            EXIF.getTag(
+              this,
+              "GPSLatitude"
+            );
 
-  const clientY =
-    event.clientY;
+          const latRef =
+            EXIF.getTag(
+              this,
+              "GPSLatitudeRef"
+            );
 
-  if (
-    clientX < rect.left ||
-    clientX > rect.right ||
-    clientY < rect.top ||
-    clientY > rect.bottom
-  ) {
-    return;
-  }
+          const lon =
+            EXIF.getTag(
+              this,
+              "GPSLongitude"
+            );
 
-  const latlng =
-    map.mouseEventToLatLng(
-      event
-    );
+          const lonRef =
+            EXIF.getTag(
+              this,
+              "GPSLongitudeRef"
+            );
 
-  setSelectedLocation(
-    latlng.lat,
-    latlng.lng
-  );
+          if (
+            !lat ||
+            !lon ||
+            !latRef ||
+            !lonRef
+          ) {
+            resolve(null);
+            return;
+          }
 
-  if (pointerCursor) {
-    pointerCursor.style.display =
-      "block";
+          const toDecimal =
+            (dms, ref) => {
+              const decimal =
+                dms[0] +
+                dms[1] / 60 +
+                dms[2] / 3600;
 
-    pointerCursor.style.left =
-      `${clientX}px`;
+              return (
+                ref === "S" ||
+                ref === "W"
+              )
+                ? -decimal
+                : decimal;
+            };
 
-    pointerCursor.style.top =
-      `${clientY}px`;
-  }
+          resolve({
+            lat: toDecimal(
+              lat,
+              latRef
+            ),
+            lon: toDecimal(
+              lon,
+              lonRef
+            )
+          });
+        }
+      );
+    } catch (error) {
+      resolve(null);
+    }
+  });
 }
 
-const mapContainer =
-  map.getContainer();
+async function getReportLocation(image) {
+  try {
+    return await requestDeviceLocation(false);
+  } catch (gpsError) {
+    if (image) {
+      const photoGPS =
+        await getPhotoGPS(image);
 
-mapContainer.addEventListener(
-  "pointermove",
-  handlePointerOnMap
-);
+      if (photoGPS) {
+        updateCurrentLocation(
+          photoGPS.lat,
+          photoGPS.lon
+        );
 
-mapContainer.addEventListener(
-  "pointerdown",
-  handlePointerOnMap
-);
+        setGPSStatus(
+          "GPS: from photo EXIF"
+        );
 
-mapContainer.addEventListener(
-  "pointerenter",
-  event => {
-    if (pointerCursor) {
-      pointerCursor.style.display =
-        "block";
+        return photoGPS;
+      }
     }
 
-    handlePointerOnMap(event);
+    return null;
   }
-);
-
-mapContainer.addEventListener(
-  "pointerleave",
-  () => {
-    if (
-      pointerCursor &&
-      window.matchMedia(
-        "(hover: hover)"
-      ).matches
-    ) {
-      pointerCursor.style.display =
-        "none";
-    }
-  }
-);
-
-mapContainer.addEventListener(
-  "touchstart",
-  event => {
-    if (
-      event.touches &&
-      event.touches.length
-    ) {
-      handlePointerOnMap(
-        event.touches[0]
-      );
-    }
-  },
-  {
-    passive: true
-  }
-);
-
-mapContainer.addEventListener(
-  "touchmove",
-  event => {
-    if (
-      event.touches &&
-      event.touches.length
-    ) {
-      handlePointerOnMap(
-        event.touches[0]
-      );
-    }
-  },
-  {
-    passive: true
-  }
-);
+}
 
 function openQueueDB() {
   return new Promise(
@@ -310,9 +309,7 @@ function openQueueDB() {
   );
 }
 
-async function queueReport(
-  entry
-) {
+async function queueReport(entry) {
   const db =
     await openQueueDB();
 
@@ -409,9 +406,7 @@ async function deleteQueuedReport(
   );
 }
 
-function updateQueueBadge(
-  count
-) {
+function updateQueueBadge(count) {
   const badge =
     document.getElementById(
       "queueBadge"
@@ -513,10 +508,12 @@ async function syncQueuedReports() {
       entry.source
     );
 
-    formData.append(
-      "captured_at",
-      entry.captured_at
-    );
+    if (entry.captured_at) {
+      formData.append(
+        "captured_at",
+        entry.captured_at
+      );
+    }
 
     try {
       const response =
@@ -537,6 +534,13 @@ async function syncQueuedReports() {
         continue;
       }
 
+      const data =
+        await response.json();
+
+      addReportMarker(
+        data
+      );
+
       await deleteQueuedReport(
         entry.queueId
       );
@@ -551,6 +555,7 @@ async function syncQueuedReports() {
   }
 
   await refreshQueueBadge();
+
   loadReports();
 }
 
@@ -592,73 +597,65 @@ function buildPopupContent(
         ).toFixed(0) + "%"
       : "N/A";
 
-  const lowConfidenceFlag =
-    typeof report.confidence ===
-      "number" &&
-    report.confidence < 0.5
+  const thermalInfo =
+    report.source === "drone" &&
+    report.humans_detected !== null &&
+    report.humans_detected !== undefined
       ? `
         <div
           style="
-            color:#ff6678;
-            font-size:11px;
-            margin-top:5px;
+            margin-top:8px;
+            padding-top:8px;
+            border-top:1px solid rgba(255,255,255,.1);
           "
         >
-          ⚠ Low confidence
+          🌡 Thermal:
+          ${
+            report.humans_detected === false
+              ? `
+                <b style="color:#00ff88;">
+                  No people detected
+                </b>
+              `
+              : report.count_confident === true
+                ? `
+                  <b style="color:#ff5367;">
+                    ${report.human_count_estimate}
+                    ${
+                      Number(
+                        report.human_count_estimate
+                      ) === 1
+                        ? "person"
+                        : "people"
+                    }
+                    detected
+                  </b>
+                `
+                : `
+                  <b style="color:#ffaa00;">
+                    People detected
+                    <span style="font-weight:500;">
+                      (count uncertain)
+                    </span>
+                  </b>
+                `
+          }
+
+          <br>
+
+          Thermal confidence:
+          ${
+            typeof report.thermal_confidence ===
+            "number"
+              ? (
+                  report.thermal_confidence *
+                  100
+                ).toFixed(0) + "%"
+              : "N/A"
+          }
         </div>
       `
       : "";
-
-  const thermalInfo =
-  report.source === "drone" &&
-  report.humans_detected !== null &&
-  report.humans_detected !== undefined
-    ? `
-      <div
-        style="
-          margin-top:8px;
-          padding-top:8px;
-          border-top:1px solid rgba(255,255,255,.1);
-        "
-      >
-        🌡 Thermal:
-        ${
-          report.humans_detected === false
-            ? `
-              <b style="color:#00ff88;">
-                No people detected
-              </b>
-            `
-            : report.count_confident === true
-              ? `
-                <b style="color:#ff5367;">
-                  ${report.human_count_estimate}
-                  ${Number(report.human_count_estimate) === 1 ? "person" : "people"} detected
-                </b>
-              `
-              : `
-                <b style="color:#ffaa00;">
-                  People detected
-                  <span style="font-weight:500;">
-                    (count uncertain)
-                  </span>
-                </b>
-              `
-        }
-
-        <br>
-
-        Thermal confidence:
-        ${
-          typeof report.thermal_confidence === "number"
-            ? (
-                report.thermal_confidence * 100
-              ).toFixed(0) + "%"
-            : "N/A"
-        }
-      </div>
-    `
-    : "";
 
   const sourceTag =
     report.source
@@ -676,14 +673,34 @@ function buildPopupContent(
       `
       : "";
 
+  const capturedAt =
+    report.captured_at ||
+    report.timestamp;
+
+  const capturedInfo =
+    capturedAt
+      ? `
+        <div
+          style="
+            font-size:10px;
+            color:#74828e;
+            margin-top:6px;
+          "
+        >
+          TIME: ${capturedAt}
+        </div>
+      `
+      : "";
+
   return `
     <div
       style="
-        min-width:180px;
+        min-width:190px;
         font-family:'Inter',sans-serif;
         line-height:1.6;
       "
     >
+
       <div
         style="
           font-size:14px;
@@ -712,9 +729,10 @@ function buildPopupContent(
         <b>${confidence}</b>
       </div>
 
-      ${lowConfidenceFlag}
       ${thermalInfo}
       ${sourceTag}
+      ${capturedInfo}
+
     </div>
   `;
 }
@@ -727,12 +745,7 @@ function addReportMarker(
     !report ||
     report.id === undefined ||
     report.lat === undefined ||
-    report.lon === undefined
-  ) {
-    return;
-  }
-
-  if (
+    report.lon === undefined ||
     report.lat === null ||
     report.lon === null
   ) {
@@ -782,178 +795,126 @@ function addReportMarker(
   }
 }
 
-function loadReports() {
-  fetch(
-    "http://localhost:8000/api/reports"
-  )
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(
-          "Failed to load reports"
+async function loadReports() {
+  try {
+    const response =
+      await fetch(
+        "http://localhost:8000/api/reports"
+      );
+
+    if (!response.ok) {
+      throw new Error(
+        "Failed to load reports"
+      );
+    }
+
+    const reports =
+      await response.json();
+
+    if (
+      !Array.isArray(reports)
+    ) {
+      return;
+    }
+
+    reports.forEach(
+      report => {
+        addReportMarker(
+          report
         );
       }
-
-      return response.json();
-    })
-    .then(reports => {
-      if (
-        !Array.isArray(reports)
-      ) {
-        return;
-      }
-
-      reports.forEach(
-        report => {
-          addReportMarker(
-            report
-          );
-        }
-      );
-    })
-    .catch(error => {
-      console.error(
-        "Failed to load reports:",
-        error
-      );
-    });
+    );
+  } catch (error) {
+    console.error(
+      "Failed to load reports:",
+      error
+    );
+  }
 }
 
-function requestDeviceLocation(
-  centerMap = false
+function setSourceMode(
+  isDrone
 ) {
-  if (!navigator.geolocation) {
-    setGPSStatus(
-      "GPS unavailable"
-    );
-
-    return;
+  if (sourceSwitch) {
+    sourceSwitch.checked =
+      isDrone;
   }
 
-  setGPSStatus(
-    "Requesting device location..."
-  );
+  if (tabMobile) {
+    tabMobile.classList.toggle(
+      "sourceTabActive",
+      !isDrone
+    );
 
-  navigator.geolocation.getCurrentPosition(
-    position => {
-      const lat =
-        position.coords.latitude;
+    tabMobile.setAttribute(
+      "aria-selected",
+      String(!isDrone)
+    );
+  }
 
-      const lon =
-        position.coords.longitude;
+  if (tabDrone) {
+    tabDrone.classList.toggle(
+      "sourceTabActive",
+      isDrone
+    );
 
-      updateCurrentLocation(
-        lat,
-        lon
-      );
+    tabDrone.setAttribute(
+      "aria-selected",
+      String(isDrone)
+    );
+  }
 
-      if (centerMap) {
-        map.setView(
-          [lat, lon],
-          15
-        );
-      }
+  if (thermalImageLabel) {
+    thermalImageLabel.style.display =
+      isDrone
+        ? "flex"
+        : "none";
+  }
 
-      setGPSStatus(
-        "GPS ready. Move pointer over map"
-      );
-    },
+  if (
+    !isDrone &&
+    thermalImage
+  ) {
+    thermalImage.value = "";
+
+    if (
+      thermalFileNameDisplay
+    ) {
+      thermalFileNameDisplay.textContent =
+        "Upload Thermal Image";
+    }
+  }
+}
+
+if (tabMobile) {
+  tabMobile.addEventListener(
+    "click",
     () => {
-      setGPSStatus(
-        selectedLat !== null
-          ? `Pointer: ${selectedLat.toFixed(6)}, ${selectedLon.toFixed(6)}`
-          : "GPS unavailable"
+      setSourceMode(
+        false
       );
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 30000
     }
   );
 }
 
-function getPhotoGPS(
-  file
-) {
-  return new Promise(
-    resolve => {
-      if (
-        !file ||
-        typeof EXIF ===
-          "undefined"
-      ) {
-        resolve(null);
-        return;
-      }
+if (tabDrone) {
+  tabDrone.addEventListener(
+    "click",
+    () => {
+      setSourceMode(
+        true
+      );
+    }
+  );
+}
 
-      try {
-        EXIF.getData(
-          file,
-          function () {
-            const lat =
-              EXIF.getTag(
-                this,
-                "GPSLatitude"
-              );
-
-            const latRef =
-              EXIF.getTag(
-                this,
-                "GPSLatitudeRef"
-              );
-
-            const lon =
-              EXIF.getTag(
-                this,
-                "GPSLongitude"
-              );
-
-            const lonRef =
-              EXIF.getTag(
-                this,
-                "GPSLongitudeRef"
-              );
-
-            if (
-              !lat ||
-              !lon ||
-              !latRef ||
-              !lonRef
-            ) {
-              resolve(null);
-              return;
-            }
-
-            const toDecimal =
-              (dms, ref) => {
-                const decimal =
-                  dms[0] +
-                  dms[1] / 60 +
-                  dms[2] / 3600;
-
-                return (
-                  ref === "S" ||
-                  ref === "W"
-                )
-                  ? -decimal
-                  : decimal;
-              };
-
-            resolve({
-              lat: toDecimal(
-                lat,
-                latRef
-              ),
-              lon: toDecimal(
-                lon,
-                lonRef
-              )
-            });
-          }
-        );
-      } catch (error) {
-        resolve(null);
-      }
+if (sourceSwitch) {
+  sourceSwitch.addEventListener(
+    "change",
+    () => {
+      setSourceMode(
+        sourceSwitch.checked
+      );
     }
   );
 }
@@ -975,31 +936,30 @@ if (reportImage) {
       fileNameDisplay.textContent =
         file.name;
 
-      setGPSStatus(
-        "Checking photo GPS..."
-      );
-
       const photoGPS =
         await getPhotoGPS(
           file
         );
 
       if (photoGPS) {
-        setSelectedLocation(
-          photoGPS.lat,
-          photoGPS.lon
-        );
-
         updateCurrentLocation(
           photoGPS.lat,
           photoGPS.lon
         );
 
         setGPSStatus(
-          "GPS: from photo"
+          "Photo GPS available. Device GPS used at submit"
         );
       } else {
-        requestDeviceLocation();
+        try {
+          await requestDeviceLocation(
+            false
+          );
+        } catch (error) {
+          setGPSStatus(
+            "Waiting for device GPS"
+          );
+        }
       }
     }
   );
@@ -1008,8 +968,7 @@ if (reportImage) {
 async function startCamera() {
   if (
     !navigator.mediaDevices ||
-    !navigator.mediaDevices
-      .getUserMedia
+    !navigator.mediaDevices.getUserMedia
   ) {
     alert(
       "Camera access is not supported in this browser."
@@ -1261,93 +1220,6 @@ if (thermalImage) {
   );
 }
 
-function setSourceMode(
-  isDrone
-) {
-  if (sourceSwitch) {
-    sourceSwitch.checked =
-      isDrone;
-  }
-
-  if (tabMobile) {
-    tabMobile.classList.toggle(
-      "sourceTabActive",
-      !isDrone
-    );
-
-    tabMobile.setAttribute(
-      "aria-selected",
-      String(!isDrone)
-    );
-  }
-
-  if (tabDrone) {
-    tabDrone.classList.toggle(
-      "sourceTabActive",
-      isDrone
-    );
-
-    tabDrone.setAttribute(
-      "aria-selected",
-      String(isDrone)
-    );
-  }
-
-  if (thermalImageLabel) {
-    thermalImageLabel.style.display =
-      isDrone
-        ? "flex"
-        : "none";
-  }
-
-  if (
-    !isDrone &&
-    thermalImage
-  ) {
-    thermalImage.value = "";
-
-    if (
-      thermalFileNameDisplay
-    ) {
-      thermalFileNameDisplay.textContent =
-        "Upload Thermal Image";
-    }
-  }
-}
-
-if (tabMobile) {
-  tabMobile.addEventListener(
-    "click",
-    () => {
-      setSourceMode(
-        false
-      );
-    }
-  );
-}
-
-if (tabDrone) {
-  tabDrone.addEventListener(
-    "click",
-    () => {
-      setSourceMode(
-        true
-      );
-    }
-  );
-}
-
-if (sourceSwitch) {
-  sourceSwitch.addEventListener(
-    "change",
-    () => {
-      setSourceMode(
-        sourceSwitch.checked
-      );
-    }
-  );
-}
-
 const refreshGpsBtn =
   document.getElementById(
     "refreshGpsBtn"
@@ -1356,23 +1228,25 @@ const refreshGpsBtn =
 if (refreshGpsBtn) {
   refreshGpsBtn.addEventListener(
     "click",
-    () => {
+    async () => {
       refreshGpsBtn.classList.add(
         "is-loading"
       );
 
-      requestDeviceLocation(
-        true
-      );
-
-      setTimeout(
-        () => {
-          refreshGpsBtn.classList.remove(
-            "is-loading"
-          );
-        },
-        1000
-      );
+      try {
+        await requestDeviceLocation(
+          false
+        );
+      } finally {
+        setTimeout(
+          () => {
+            refreshGpsBtn.classList.remove(
+              "is-loading"
+            );
+          },
+          500
+        );
+      }
     }
   );
 }
@@ -1385,23 +1259,25 @@ const locateBtn =
 if (locateBtn) {
   locateBtn.addEventListener(
     "click",
-    () => {
+    async () => {
       locateBtn.classList.add(
         "located"
       );
 
-      requestDeviceLocation(
-        true
-      );
-
-      setTimeout(
-        () => {
-          locateBtn.classList.remove(
-            "located"
-          );
-        },
-        1200
-      );
+      try {
+        await requestDeviceLocation(
+          true
+        );
+      } finally {
+        setTimeout(
+          () => {
+            locateBtn.classList.remove(
+              "located"
+            );
+          },
+          1000
+        );
+      }
     }
   );
 }
@@ -1415,20 +1291,39 @@ if (copyLocationBtn) {
   copyLocationBtn.addEventListener(
     "click",
     async () => {
-      if (
-        selectedLat === null ||
-        selectedLon === null
-      ) {
-        alert(
-          "Move the pointer over the map first."
-        );
+      let lat =
+        latestLat;
 
-        return;
+      let lon =
+        latestLon;
+
+      if (
+        lat === null ||
+        lon === null
+      ) {
+        try {
+          const location =
+            await requestDeviceLocation(
+              false
+            );
+
+          lat =
+            location.lat;
+
+          lon =
+            location.lon;
+        } catch (error) {
+          alert(
+            "Location is not available yet."
+          );
+
+          return;
+        }
       }
 
       try {
         await navigator.clipboard.writeText(
-          `${selectedLat.toFixed(6)}, ${selectedLon.toFixed(6)}`
+          `${lat.toFixed(6)}, ${lon.toFixed(6)}`
         );
 
         copyLocationBtn.classList.add(
@@ -1503,7 +1398,11 @@ if (accessApplyBtn) {
         wantsLocation &&
         navigator.geolocation
       ) {
-        requestDeviceLocation();
+        try {
+          await requestDeviceLocation(
+            false
+          );
+        } catch (error) {}
       }
 
       accessOverlay.classList.add(
@@ -1566,6 +1465,19 @@ if (reportForm) {
       }
 
       if (
+        image &&
+        !image.type.startsWith(
+          "image/"
+        )
+      ) {
+        alert(
+          "Normal file must be an image."
+        );
+
+        return;
+      }
+
+      if (
         thermal &&
         thermal.size >
           10 * 1024 * 1024
@@ -1578,11 +1490,13 @@ if (reportForm) {
       }
 
       if (
-        selectedLat === null ||
-        selectedLon === null
+        thermal &&
+        !thermal.type.startsWith(
+          "image/"
+        )
       ) {
         alert(
-          "Move the pointer over the map to select the report location."
+          "Thermal file must be an image."
         );
 
         return;
@@ -1604,49 +1518,71 @@ if (reportForm) {
       );
 
       submitBtn.textContent =
-        "Submitting";
+        "Getting Location";
 
       const capturedAt =
         new Date().toISOString();
 
-      const formData =
-        new FormData();
-
-      if (image) {
-        formData.append(
-          "image",
-          image
-        );
-      }
-
-      formData.append(
-        "lat",
-        selectedLat
-      );
-
-      formData.append(
-        "lon",
-        selectedLon
-      );
-
-      formData.append(
-        "source",
-        source
-      );
-
-      formData.append(
-        "captured_at",
-        capturedAt
-      );
-
-      if (thermal) {
-        formData.append(
-          "thermal_image",
-          thermal
-        );
-      }
+      let reportLocation =
+        null;
 
       try {
+        reportLocation =
+          await getReportLocation(
+            image
+          );
+
+        if (!reportLocation) {
+          throw new Error(
+            "Unable to determine your location."
+          );
+        }
+
+        updateCurrentLocation(
+          reportLocation.lat,
+          reportLocation.lon
+        );
+
+        const formData =
+          new FormData();
+
+        if (image) {
+          formData.append(
+            "image",
+            image
+          );
+        }
+
+        formData.append(
+          "lat",
+          reportLocation.lat
+        );
+
+        formData.append(
+          "lon",
+          reportLocation.lon
+        );
+
+        formData.append(
+          "source",
+          source
+        );
+
+        formData.append(
+          "captured_at",
+          capturedAt
+        );
+
+        if (thermal) {
+          formData.append(
+            "thermal_image",
+            thermal
+          );
+        }
+
+        submitBtn.textContent =
+          "Submitting";
+
         const response =
           await fetch(
             "http://localhost:8000/api/reports",
@@ -1688,28 +1624,51 @@ if (reportForm) {
 
         reportForm.reset();
 
-        fileNameDisplay.textContent =
-          "Upload Photo";
+        if (fileNameDisplay) {
+          fileNameDisplay.textContent =
+            "Upload Photo";
+        }
 
-        thermalFileNameDisplay.textContent =
-          "Upload Thermal Image";
+        if (
+          thermalFileNameDisplay
+        ) {
+          thermalFileNameDisplay.textContent =
+            "Upload Thermal Image";
+        }
 
         setSourceMode(
           false
         );
 
         setGPSStatus(
-          selectedLat !== null &&
-          selectedLon !== null
-            ? `Pointer: ${selectedLat.toFixed(6)}, ${selectedLon.toFixed(6)}`
-            : "Move pointer over map"
+          `GPS: ${reportLocation.lat.toFixed(6)}, ${reportLocation.lon.toFixed(6)}`
         );
 
         await refreshQueueBadge();
       } catch (error) {
-        if (
-          error instanceof TypeError
-        ) {
+        const isNetworkError =
+          error instanceof TypeError;
+
+        if (isNetworkError) {
+          if (!reportLocation) {
+            try {
+              reportLocation =
+                await getReportLocation(
+                  image
+                );
+            } catch (locationError) {
+              reportLocation = null;
+            }
+          }
+
+          if (!reportLocation) {
+            alert(
+              "Unable to determine location. Please enable GPS or use a photo with GPS data."
+            );
+
+            return;
+          }
+
           try {
             await queueReport({
               image:
@@ -1729,10 +1688,10 @@ if (reportForm) {
                   : null,
 
               lat:
-                selectedLat,
+                reportLocation.lat,
 
               lon:
-                selectedLon,
+                reportLocation.lon,
 
               source:
                 source,
@@ -1740,6 +1699,15 @@ if (reportForm) {
               captured_at:
                 capturedAt
             });
+
+            updateCurrentLocation(
+              reportLocation.lat,
+              reportLocation.lon
+            );
+
+            setGPSStatus(
+              "GPS: saved offline"
+            );
 
             await refreshQueueBadge();
 
@@ -1749,18 +1717,29 @@ if (reportForm) {
 
             reportForm.reset();
 
-            fileNameDisplay.textContent =
-              "Upload Photo";
+            if (fileNameDisplay) {
+              fileNameDisplay.textContent =
+                "Upload Photo";
+            }
 
-            thermalFileNameDisplay.textContent =
-              "Upload Thermal Image";
+            if (
+              thermalFileNameDisplay
+            ) {
+              thermalFileNameDisplay.textContent =
+                "Upload Thermal Image";
+            }
 
             setSourceMode(
               false
             );
           } catch (queueError) {
+            console.error(
+              "Failed to save report offline:",
+              queueError
+            );
+
             alert(
-              "Unable to save the report offline."
+              "No connection and the report could not be saved offline."
             );
           }
         } else {
@@ -1796,16 +1775,16 @@ window.addEventListener(
 
 window.addEventListener(
   "load",
-  () => {
-    refreshQueueBadge();
-    syncQueuedReports();
+  async () => {
+    await refreshQueueBadge();
 
-    setTimeout(
-      () => {
-        requestDeviceLocation();
-      },
-      500
-    );
+    await syncQueuedReports();
+
+    try {
+      await requestDeviceLocation(
+        false
+      );
+    } catch (error) {}
   }
 );
 
