@@ -218,6 +218,8 @@ const STORE_NAME =
 let latestLat = null;
 let latestLon = null;
 
+let isSyncingQueuedReports = false;
+
 function setGPSStatus(message) {
   if (gpsSourceNote) {
     gpsSourceNote.textContent = message;
@@ -609,118 +611,121 @@ async function refreshQueueBadge() {
 }
 
 async function syncQueuedReports() {
-  let queued;
+  if (isSyncingQueuedReports) {
+    return;
+  }
+
+  isSyncingQueuedReports = true;
 
   try {
-    queued =
-      await getAllQueuedReports();
-  } catch (error) {
-    console.error(
-      "Unable to read offline queue:",
-      error
-    );
-
-    return;
-  }
-
-  if (queued.length === 0) {
-    return;
-  }
-
-  queued.sort(
-    (a, b) =>
-      (a.captured_at || "")
-        .localeCompare(
-          b.captured_at || ""
-        )
-  );
-
-  for (const entry of queued) {
-    const formData =
-      new FormData();
-
-    if (entry.image) {
-      formData.append(
-        "image",
-        entry.image,
-        entry.imageName ||
-          "image.jpg"
-      );
-    }
-
-    if (entry.thermal_image) {
-      formData.append(
-        "thermal_image",
-        entry.thermal_image,
-        entry.thermalImageName ||
-          "thermal.jpg"
-      );
-    }
-
-    formData.append(
-      "lat",
-      entry.lat
-    );
-
-    formData.append(
-      "lon",
-      entry.lon
-    );
-
-    formData.append(
-      "source",
-      entry.source
-    );
-
-    if (entry.captured_at) {
-      formData.append(
-        "captured_at",
-        entry.captured_at
-      );
-    }
+    let queued;
 
     try {
-      const response =
-        await fetch(
-          "https://der-01-disaster-map.onrender.com/api/reports",
-          {
-            method: "POST",
-            body: formData
-          }
-        );
-
-      if (!response.ok) {
-        console.error(
-          "Queued report rejected:",
-          await response.text()
-        );
-
-        continue;
-      }
-
-      const data =
-        await response.json();
-
-      addReportMarker(
-        data
-      );
-
-      await deleteQueuedReport(
-        entry.queueId
-      );
+      queued = await getAllQueuedReports();
     } catch (error) {
       console.error(
-        "Still offline:",
+        "Unable to read offline queue:",
         error
       );
 
-      break;
+      return;
     }
+
+    if (queued.length === 0) {
+      return;
+    }
+
+    queued.sort(
+      (a, b) =>
+        (a.captured_at || "")
+          .localeCompare(
+            b.captured_at || ""
+          )
+    );
+
+    for (const entry of queued) {
+      const formData =
+        new FormData();
+
+      if (entry.image) {
+        formData.append(
+          "image",
+          entry.image,
+          entry.imageName ||
+            "image.jpg"
+        );
+      }
+
+      if (entry.thermal_image) {
+        formData.append(
+          "thermal_image",
+          entry.thermal_image,
+          entry.thermalImageName ||
+            "thermal.jpg"
+        );
+      }
+
+      formData.append("lat", entry.lat);
+      formData.append("lon", entry.lon);
+      formData.append("source", entry.source);
+
+      if (entry.captured_at) {
+        formData.append(
+          "captured_at",
+          entry.captured_at
+        );
+      }
+
+      try {
+        const response =
+          await fetch(
+            "https://der-01-disaster-map.onrender.com/api/reports",
+            {
+              method: "POST",
+              body: formData
+            }
+          );
+
+        if (!response.ok) {
+          console.error(
+            "Queued report rejected:",
+            await response.text()
+          );
+
+          continue;
+        }
+
+        /* Server accepted it: remove it from local queue immediately. */
+        await deleteQueuedReport(
+          entry.queueId
+        );
+
+        try {
+          const data =
+            await response.json();
+
+          addReportMarker(data);
+        } catch (error) {
+          console.warn(
+            "Report synced but response could not be displayed:",
+            error
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Still offline:",
+          error
+        );
+
+        break;
+      }
+    }
+
+    await refreshQueueBadge();
+    loadReports();
+  } finally {
+    isSyncingQueuedReports = false;
   }
-
-  await refreshQueueBadge();
-
-  loadReports();
 }
 
 function getSeverityColor(
