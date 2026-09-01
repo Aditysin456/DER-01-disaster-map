@@ -11,8 +11,23 @@ const mockReports = [
   { id: 4, lat: 13.0358, lng: 80.2297, hazard_type: "Flood", severity: "High", confidence: 0.88 }
 ];
 
+function getSeverityColor(severity) {
+  switch (severity) {
+    case 'High': return 'red';
+    case 'Medium': return 'orange';
+    case 'Low': return 'green';
+    default: return 'blue';
+  }
+}
+
 mockReports.forEach(report => {
-  L.marker([report.lat, report.lng])
+  L.circleMarker([report.lat, report.lng], {
+    radius: 10,
+    fillColor: getSeverityColor(report.severity),
+    color: '#333',
+    weight: 1,
+    fillOpacity: 0.9
+  })
     .addTo(map)
     .bindPopup(`
       <b>${report.hazard_type}</b><br>
