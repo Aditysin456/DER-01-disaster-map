@@ -679,7 +679,7 @@ async function syncQueuedReports() {
       try {
         const response =
           await fetch(
-            "https://der-01-disaster-map.onrender.com/api/reports",
+            "/api/reports",
             {
               method: "POST",
               body: formData
@@ -968,7 +968,7 @@ async function loadReports() {
   try {
     const response =
       await fetch(
-        "https://der-01-disaster-map.onrender.com/api/reports"
+        "/api/reports"
       );
 
     if (!response.ok) {
@@ -1754,7 +1754,7 @@ if (reportForm) {
 
         const response =
           await fetch(
-            "https://der-01-disaster-map.onrender.com/api/reports",
+            "/api/reports",
             {
               method: "POST",
               body: formData

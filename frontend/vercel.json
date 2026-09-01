@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://der-01-disaster-map.onrender.com/api/:path*"
+    }
+  ]
+}
