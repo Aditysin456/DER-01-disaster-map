@@ -610,46 +610,55 @@ function buildPopupContent(
       : "";
 
   const thermalInfo =
-    report.source === "drone" &&
-    report.humans_detected !==
-      null &&
-    report.humans_detected !==
-      undefined
-      ? `
-        <div
-          style="
-            margin-top:8px;
-            padding-top:8px;
-            border-top:1px solid rgba(255,255,255,.1);
-          "
-        >
-          Thermal:
-          ${
-            report.humans_detected
+  report.source === "drone" &&
+  report.humans_detected !== null &&
+  report.humans_detected !== undefined
+    ? `
+      <div
+        style="
+          margin-top:8px;
+          padding-top:8px;
+          border-top:1px solid rgba(255,255,255,.1);
+        "
+      >
+        🌡 Thermal:
+        ${
+          report.humans_detected === false
+            ? `
+              <b style="color:#00ff88;">
+                No people detected
+              </b>
+            `
+            : report.count_confident === true
               ? `
                 <b style="color:#ff5367;">
                   ${report.human_count_estimate}
-                  human(s) detected
+                  ${Number(report.human_count_estimate) === 1 ? "person" : "people"} detected
                 </b>
               `
-              : "No humans detected"
-          }
+              : `
+                <b style="color:#ffaa00;">
+                  People detected
+                  <span style="font-weight:500;">
+                    (count uncertain)
+                  </span>
+                </b>
+              `
+        }
 
-          <br>
+        <br>
 
-          Thermal confidence:
-          ${
-            typeof report.thermal_confidence ===
-            "number"
-              ? (
-                  report.thermal_confidence *
-                  100
-                ).toFixed(0) + "%"
-              : "N/A"
-          }
-        </div>
-      `
-      : "";
+        Thermal confidence:
+        ${
+          typeof report.thermal_confidence === "number"
+            ? (
+                report.thermal_confidence * 100
+              ).toFixed(0) + "%"
+            : "N/A"
+        }
+      </div>
+    `
+    : "";
 
   const sourceTag =
     report.source
