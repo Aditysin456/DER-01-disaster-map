@@ -7,176 +7,12 @@ const map = L.map("map").setView(
   13
 );
 
-const normalLayer = L.tileLayer(
+L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   {
     attribution: "© OpenStreetMap contributors"
   }
-);
-
-const terrainLayer = L.tileLayer(
-  "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-  {
-    maxZoom: 17,
-    attribution: "© OpenStreetMap contributors, © OpenTopoMap"
-  }
-);
-
-const satelliteLayer = L.tileLayer(
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  {
-    attribution: "Tiles © Esri"
-  }
-);
-
-normalLayer.addTo(map);
-
-const mapThemes = {
-  normal: normalLayer,
-  terrain: terrainLayer,
-  satellite: satelliteLayer
-};
-
-const mapThemeNames = {
-  normal: "Normal",
-  terrain: "Terrain",
-  satellite: "Satellite"
-};
-
-let activeMapTheme = normalLayer;
-
-const dashboardHeader =
-  document.getElementById("appHeader");
-
-if (dashboardHeader) {
-  const themeMenu =
-    document.createElement("div");
-
-  themeMenu.id = "mapThemeMenu";
-
-  themeMenu.innerHTML = `
-    <button
-      type="button"
-      id="mapThemeToggle"
-      aria-label="Choose map theme"
-      aria-expanded="false"
-    >
-      <span id="activeMapTheme">Normal</span>
-      <span class="themeChevron">▾</span>
-    </button>
-
-    <div id="mapThemePanel">
-      <div class="mapThemePanelHeading">
-        <span>MAP THEMES</span>
-        <span>SELECT VIEW</span>
-      </div>
-
-      <div class="mapThemeOptions">
-        <button type="button" class="mapThemeOption is-active" data-theme="normal">
-          <span class="themeIcon">⌘</span>
-          <span>Normal</span>
-        </button>
-
-        <button type="button" class="mapThemeOption" data-theme="terrain">
-          <span class="themeIcon">△</span>
-          <span>Terrain</span>
-        </button>
-
-        <button type="button" class="mapThemeOption" data-theme="satellite">
-          <span class="themeIcon">◉</span>
-          <span>Satellite</span>
-        </button>
-      </div>
-    </div>
-  `;
-
-  dashboardHeader.appendChild(themeMenu);
-
-  const toggle =
-    document.getElementById("mapThemeToggle");
-
-  const panel =
-    document.getElementById("mapThemePanel");
-
-  const activeThemeLabel =
-    document.getElementById("activeMapTheme");
-
-  toggle.addEventListener("click", event => {
-    event.stopPropagation();
-
-    const isOpen =
-      themeMenu.classList.toggle("is-open");
-
-    toggle.setAttribute(
-      "aria-expanded",
-      String(isOpen)
-    );
-
-    document.body.classList.toggle(
-      "map-theme-open",
-      isOpen
-    );
-  });
-
-  document.querySelectorAll(".mapThemeOption")
-    .forEach(button => {
-      button.addEventListener("click", () => {
-        const theme =
-          button.dataset.theme;
-
-        const nextTheme =
-          mapThemes[theme];
-
-        if (
-          nextTheme &&
-          nextTheme !== activeMapTheme
-        ) {
-          map.removeLayer(activeMapTheme);
-          nextTheme.addTo(map);
-          activeMapTheme = nextTheme;
-        }
-
-        activeThemeLabel.textContent =
-          mapThemeNames[theme];
-
-        document
-          .querySelectorAll(".mapThemeOption")
-          .forEach(option =>
-            option.classList.remove("is-active")
-          );
-
-        button.classList.add("is-active");
-
-        themeMenu.classList.remove("is-open");
-
-        document.body.classList.remove(
-          "map-theme-open"
-        );
-
-        toggle.setAttribute(
-          "aria-expanded",
-          "false"
-        );
-      });
-    });
-
-  document.addEventListener("click", event => {
-    if (!themeMenu.contains(event.target)) {
-      themeMenu.classList.remove("is-open");
-
-      document.body.classList.remove(
-        "map-theme-open"
-      );
-
-      toggle.setAttribute(
-        "aria-expanded",
-        "false"
-      );
-    }
-  });
-}
-
-
+).addTo(map);
 
 const latInput = document.getElementById("lat");
 const lngInput = document.getElementById("lng");
@@ -217,8 +53,6 @@ const STORE_NAME =
 
 let latestLat = null;
 let latestLon = null;
-
-let isSyncingQueuedReports = false;
 
 function setGPSStatus(message) {
   if (gpsSourceNote) {
@@ -611,121 +445,118 @@ async function refreshQueueBadge() {
 }
 
 async function syncQueuedReports() {
-  if (isSyncingQueuedReports) {
+  let queued;
+
+  try {
+    queued =
+      await getAllQueuedReports();
+  } catch (error) {
+    console.error(
+      "Unable to read offline queue:",
+      error
+    );
+
     return;
   }
 
-  isSyncingQueuedReports = true;
+  if (queued.length === 0) {
+    return;
+  }
 
-  try {
-    let queued;
+  queued.sort(
+    (a, b) =>
+      (a.captured_at || "")
+        .localeCompare(
+          b.captured_at || ""
+        )
+  );
+
+  for (const entry of queued) {
+    const formData =
+      new FormData();
+
+    if (entry.image) {
+      formData.append(
+        "image",
+        entry.image,
+        entry.imageName ||
+          "image.jpg"
+      );
+    }
+
+    if (entry.thermal_image) {
+      formData.append(
+        "thermal_image",
+        entry.thermal_image,
+        entry.thermalImageName ||
+          "thermal.jpg"
+      );
+    }
+
+    formData.append(
+      "lat",
+      entry.lat
+    );
+
+    formData.append(
+      "lon",
+      entry.lon
+    );
+
+    formData.append(
+      "source",
+      entry.source
+    );
+
+    if (entry.captured_at) {
+      formData.append(
+        "captured_at",
+        entry.captured_at
+      );
+    }
 
     try {
-      queued = await getAllQueuedReports();
+      const response =
+        await fetch(
+          "https://der-01-disaster-map.onrender.com/api/reports",
+          {
+            method: "POST",
+            body: formData
+          }
+        );
+
+      if (!response.ok) {
+        console.error(
+          "Queued report rejected:",
+          await response.text()
+        );
+
+        continue;
+      }
+
+      const data =
+        await response.json();
+
+      addReportMarker(
+        data
+      );
+
+      await deleteQueuedReport(
+        entry.queueId
+      );
     } catch (error) {
       console.error(
-        "Unable to read offline queue:",
+        "Still offline:",
         error
       );
 
-      return;
+      break;
     }
-
-    if (queued.length === 0) {
-      return;
-    }
-
-    queued.sort(
-      (a, b) =>
-        (a.captured_at || "")
-          .localeCompare(
-            b.captured_at || ""
-          )
-    );
-
-    for (const entry of queued) {
-      const formData =
-        new FormData();
-
-      if (entry.image) {
-        formData.append(
-          "image",
-          entry.image,
-          entry.imageName ||
-            "image.jpg"
-        );
-      }
-
-      if (entry.thermal_image) {
-        formData.append(
-          "thermal_image",
-          entry.thermal_image,
-          entry.thermalImageName ||
-            "thermal.jpg"
-        );
-      }
-
-      formData.append("lat", entry.lat);
-      formData.append("lon", entry.lon);
-      formData.append("source", entry.source);
-
-      if (entry.captured_at) {
-        formData.append(
-          "captured_at",
-          entry.captured_at
-        );
-      }
-
-      try {
-        const response =
-          await fetch(
-            "https://der-01-disaster-map.onrender.com/api/reports",
-            {
-              method: "POST",
-              body: formData
-            }
-          );
-
-        if (!response.ok) {
-          console.error(
-            "Queued report rejected:",
-            await response.text()
-          );
-
-          continue;
-        }
-
-        /* Server accepted it: remove it from local queue immediately. */
-        await deleteQueuedReport(
-          entry.queueId
-        );
-
-        try {
-          const data =
-            await response.json();
-
-          addReportMarker(data);
-        } catch (error) {
-          console.warn(
-            "Report synced but response could not be displayed:",
-            error
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Still offline:",
-          error
-        );
-
-        break;
-      }
-    }
-
-    await refreshQueueBadge();
-    loadReports();
-  } finally {
-    isSyncingQueuedReports = false;
   }
+
+  await refreshQueueBadge();
+
+  loadReports();
 }
 
 function getSeverityColor(
