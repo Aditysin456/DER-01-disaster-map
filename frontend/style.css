@@ -1117,3 +1117,36 @@ button {
     z-index: 1300;
   }
 }
+
+/* Final mobile overlay rules: no HUD or form collisions */
+@media (max-width: 650px) {
+  #reportForm {
+    z-index: 1200;
+    box-sizing: border-box;
+    max-height: min(680px, calc(100dvh - 230px));
+  }
+
+  #bottomLeftCards {
+    z-index: 800;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+  }
+
+  /* Hide map HUD while the full report form is being used */
+  body:has(#reportForm:not(.collapsed)) #bottomLeftCards,
+  body.map-theme-open #bottomLeftCards {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* Give the opened theme panel its own vertical space */
+  body.map-theme-open #reportForm {
+    top: 365px;
+    max-height: min(600px, calc(100dvh - 380px));
+  }
+
+  #mapThemeMenu,
+  #mapThemePanel {
+    z-index: 1300;
+  }
+}
