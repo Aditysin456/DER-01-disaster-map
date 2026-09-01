@@ -845,3 +845,99 @@ button {
   flex: 0 0 1px;
   background: rgba(180, 200, 215, 0.25);
 }
+.reportFormHeader {
+  position: relative;
+}
+#reportForm.collapsed {
+  padding-bottom: 20px;
+  gap: 0;
+}
+#reportForm.collapsed > *:not(.reportFormHeader) {
+  display: none;
+}
+#minimizeFormBtn {
+  flex-shrink: 0;
+}
+
+
+/* Clean mobile report-panel layout */
+.reportFormHeader {
+  position: relative;
+  justify-content: center;
+}
+
+#minimizeFormBtn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(73, 216, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(46, 190, 229, 0.08);
+  color: #59dcff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#minimizeFormBtn:hover {
+  background: rgba(46, 190, 229, 0.18);
+}
+
+#reportForm.collapsed {
+  padding-bottom: 20px;
+  gap: 0;
+}
+
+#reportForm.collapsed > *:not(.reportFormHeader) {
+  display: none;
+}
+
+@media (max-width: 650px) {
+  #reportForm {
+    top: 68px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(330px, calc(100vw - 16px));
+    max-height: calc(100dvh - 76px);
+  }
+}
+
+/* Final header layout: left title, plain + / − at top-right */
+.reportFormHeader {
+  position: relative;
+  justify-content: flex-start;
+}
+
+#minimizeFormBtn {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #59dcff;
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+#minimizeFormBtn:hover,
+#minimizeFormBtn:focus {
+  background: transparent;
+  color: #8be8ff;
+  outline: none;
+}

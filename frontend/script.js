@@ -1796,3 +1796,15 @@ setInterval(
   loadReports,
   8000
 );
+document.getElementById("minimizeFormBtn")?.addEventListener("click", () => {
+  const form = document.getElementById("reportForm");
+  const button = document.getElementById("minimizeFormBtn");
+  const collapsed = form.classList.toggle("collapsed");
+
+  button.textContent = collapsed ? "+" : "−";
+  button.setAttribute("aria-expanded", String(!collapsed));
+  button.setAttribute(
+    "aria-label",
+    collapsed ? "Expand report form" : "Minimize report form"
+  );
+});
