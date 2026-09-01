@@ -7,15 +7,27 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="appHeader">Citizen Disaster Reporting Dashboard</div>
+
   <div id="map"></div>
 
   <form id="reportForm">
-    <h3>Report a Disaster</h3>
-    <input type="file" id="reportImage" accept="image/*" required>
+    <h3>📍 Report a Disaster</h3>
     <input type="number" id="lat" step="any" placeholder="Latitude" required>
     <input type="number" id="lng" step="any" placeholder="Longitude" required>
+    <label for="reportImage" class="fileUploadLabel">
+      <span class="uploadIcon">📷</span>
+      <span id="fileNameDisplay">Upload Photo</span>
+    </label>
+    <input type="file" id="reportImage" accept="image/*" required style="display:none;">
     <button type="submit">Submit Report</button>
   </form>
+
+  <div id="legend">
+    <div><span class="dot" style="background:red"></span> High</div>
+    <div><span class="dot" style="background:orange"></span> Medium</div>
+    <div><span class="dot" style="background:green"></span> Low</div>
+  </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="script.js"></script>
