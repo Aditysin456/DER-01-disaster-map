@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+
+# Local datasets
+dataset_ready/
+dataset_ready.zip
+thermal_dataset_ready/
+thermal_dataset_ready.zip
+person_detector_dataset/
+person_detector_dataset.zip
+
+# Local preparation scripts
+prepare_dataset.py
+prepare_thermal_dataset.py
+make_person_labels.py
