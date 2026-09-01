@@ -941,3 +941,167 @@ button {
   color: #8be8ff;
   outline: none;
 }
+
+/* Compact dashboard map-theme popover */
+#appHeader {
+  position: relative;
+}
+
+#mapThemeMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1200;
+}
+
+#mapThemeToggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid rgba(73, 216, 255, 0.3);
+  border-radius: 7px;
+  background: rgba(10, 20, 30, 0.94);
+  color: #d9e3f6;
+  font: 600 11px "Inter", sans-serif;
+  cursor: pointer;
+  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.24);
+}
+
+.themeChevron {
+  color: #59dcff;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+#mapThemeMenu.is-open .themeChevron {
+  transform: rotate(180deg);
+}
+
+#mapThemePanel {
+  display: none;
+  width: 330px;
+  margin-top: 8px;
+  padding: 15px;
+  border: 1px solid rgba(73, 216, 255, 0.2);
+  border-radius: 13px;
+  background: rgba(13, 24, 37, 0.97);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+#mapThemeMenu.is-open #mapThemePanel {
+  display: block;
+}
+
+.mapThemePanelHeading {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  color: #8ea6b8;
+  font: 700 9px "JetBrains Mono", monospace;
+  letter-spacing: 0.08em;
+}
+
+.mapThemeOptions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.mapThemeOption {
+  min-height: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: #101b2b;
+  color: #b8c6d5;
+  font: 600 11px "Inter", sans-serif;
+  cursor: pointer;
+}
+
+.mapThemeOption:hover,
+.mapThemeOption.is-active {
+  border-color: rgba(73, 216, 255, 0.62);
+  background: rgba(28, 101, 130, 0.38);
+  color: #59dcff;
+}
+
+.themeIcon {
+  color: #59dcff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+@media (max-width: 650px) {
+  #mapThemePanel {
+    width: min(330px, calc(100vw - 24px));
+  }
+}
+
+/* Compact dashboard again; only the arrow is visible initially */
+#appHeader {
+  width: fit-content !important;
+  max-width: calc(100vw - 24px);
+  right: auto !important;
+  position: absolute;
+}
+
+#mapThemeMenu {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  display: flex;
+  align-items: center;
+  z-index: 1200;
+  margin-left: 2px;
+}
+
+#mapThemeToggle {
+  width: 25px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#activeMapTheme {
+  display: none;
+}
+
+.themeChevron {
+  font-size: 15px;
+  color: #8ea6b8;
+}
+
+/* The wide map-theme menu exists only after clicking the arrow */
+#mapThemePanel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  left: auto;
+  width: 330px;
+  margin: 0;
+}
+
+@media (max-width: 650px) {
+  #appHeader {
+    max-width: calc(100vw - 16px);
+  }
+
+  #mapThemePanel {
+    width: min(330px, calc(100vw - 16px));
+  }
+}

@@ -7,12 +7,163 @@ const map = L.map("map").setView(
   13
 );
 
-L.tileLayer(
+const normalLayer = L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   {
     attribution: "© OpenStreetMap contributors"
   }
-).addTo(map);
+);
+
+const terrainLayer = L.tileLayer(
+  "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+  {
+    maxZoom: 17,
+    attribution: "© OpenStreetMap contributors, © OpenTopoMap"
+  }
+);
+
+const satelliteLayer = L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  {
+    attribution: "Tiles © Esri"
+  }
+);
+
+normalLayer.addTo(map);
+
+const mapThemes = {
+  normal: normalLayer,
+  terrain: terrainLayer,
+  satellite: satelliteLayer
+};
+
+const mapThemeNames = {
+  normal: "Normal",
+  terrain: "Terrain",
+  satellite: "Satellite"
+};
+
+let activeMapTheme = normalLayer;
+
+const dashboardHeader =
+  document.getElementById("appHeader");
+
+if (dashboardHeader) {
+  const themeMenu =
+    document.createElement("div");
+
+  themeMenu.id = "mapThemeMenu";
+
+  themeMenu.innerHTML = `
+    <button
+      type="button"
+      id="mapThemeToggle"
+      aria-label="Choose map theme"
+      aria-expanded="false"
+    >
+      <span id="activeMapTheme">Normal</span>
+      <span class="themeChevron">▾</span>
+    </button>
+
+    <div id="mapThemePanel">
+      <div class="mapThemePanelHeading">
+        <span>MAP THEMES</span>
+        <span>SELECT VIEW</span>
+      </div>
+
+      <div class="mapThemeOptions">
+        <button type="button" class="mapThemeOption is-active" data-theme="normal">
+          <span class="themeIcon">⌘</span>
+          <span>Normal</span>
+        </button>
+
+        <button type="button" class="mapThemeOption" data-theme="terrain">
+          <span class="themeIcon">△</span>
+          <span>Terrain</span>
+        </button>
+
+        <button type="button" class="mapThemeOption" data-theme="satellite">
+          <span class="themeIcon">◉</span>
+          <span>Satellite</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  dashboardHeader.appendChild(themeMenu);
+
+  const toggle =
+    document.getElementById("mapThemeToggle");
+
+  const panel =
+    document.getElementById("mapThemePanel");
+
+  const activeThemeLabel =
+    document.getElementById("activeMapTheme");
+
+  toggle.addEventListener("click", event => {
+    event.stopPropagation();
+
+    const isOpen =
+      themeMenu.classList.toggle("is-open");
+
+    toggle.setAttribute(
+      "aria-expanded",
+      String(isOpen)
+    );
+  });
+
+  document.querySelectorAll(".mapThemeOption")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        const theme =
+          button.dataset.theme;
+
+        const nextTheme =
+          mapThemes[theme];
+
+        if (
+          nextTheme &&
+          nextTheme !== activeMapTheme
+        ) {
+          map.removeLayer(activeMapTheme);
+          nextTheme.addTo(map);
+          activeMapTheme = nextTheme;
+        }
+
+        activeThemeLabel.textContent =
+          mapThemeNames[theme];
+
+        document
+          .querySelectorAll(".mapThemeOption")
+          .forEach(option =>
+            option.classList.remove("is-active")
+          );
+
+        button.classList.add("is-active");
+
+        themeMenu.classList.remove("is-open");
+
+        toggle.setAttribute(
+          "aria-expanded",
+          "false"
+        );
+      });
+    });
+
+  document.addEventListener("click", event => {
+    if (!themeMenu.contains(event.target)) {
+      themeMenu.classList.remove("is-open");
+
+      toggle.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+    }
+  });
+}
+
+
 
 const latInput = document.getElementById("lat");
 const lngInput = document.getElementById("lng");
